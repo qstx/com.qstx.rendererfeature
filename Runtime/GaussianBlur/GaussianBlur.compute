@@ -1,0 +1,64 @@
+#pragma kernel GaussianBlurFull
+#pragma kernel GaussianBlurHorizontal
+#pragma kernel GaussianBlurVertical
+
+#pragma enable_d3d11_debug_symbols
+
+RWTexture2D<float4> Result;
+Texture2D<float4> InputTexture;
+
+int BlurRadius;
+
+[numthreads(8, 8, 1)]
+void GaussianBlurFull (uint3 id : SV_DispatchThreadID)
+{    
+    float4 color = float4(0, 0, 0, 0);
+    float weightSum = 0.0;
+    
+    for (int y = -BlurRadius; y <= BlurRadius; y++)
+    {
+        for (int x = -BlurRadius; x <= BlurRadius; x++)
+        {
+            float2 offset = float2(x, y);
+            float weight = exp(-(x * x + y * y) / (2.0 * (BlurRadius+1) * BlurRadius+1));
+            color += InputTexture[id.xy + offset];
+            weightSum += weight;
+        }
+    }
+    
+    Result[id.xy] = color / weightSum;
+}
+
+[numthreads(8, 8, 1)]
+void GaussianBlurHorizontal (uint3 id : SV_DispatchThreadID)
+{    
+    float4 color = float4(0, 0, 0, 0);
+    float weightSum = 0.0;
+    
+    for (int x = -BlurRadius; x <= BlurRadius; x++)
+    {
+        float2 offset = float2(x, 0);
+        float weight = exp(-(x * x) / (2.0 * (BlurRadius+1) * BlurRadius+1));
+        color += InputTexture[id.xy + offset];
+        weightSum += weight;
+    }
+    
+    Result[id.xy] = color / weightSum;
+}
+
+[numthreads(8, 8, 1)]
+void GaussianBlurVertical (uint3 id : SV_DispatchThreadID)
+{    
+    float4 color = float4(0, 0, 0, 0);
+    float weightSum = 0.0;
+    
+    for (int y = -BlurRadius; y <= BlurRadius; y++)
+    {
+        float2 offset = float2(0, y);
+        float weight = exp(-(y * y) / (2.0 * (BlurRadius+1) * BlurRadius+1));
+        color += InputTexture[id.xy + offset];
+        weightSum += weight;
+    }
+    
+    Result[id.xy] = color / weightSum;
+}
