@@ -10,12 +10,12 @@ public class GaussianBlurPass : ScriptableRenderPass
 {
     public ComputeShader computeShader;
     public int blurRadius = 5;
+    public BlurMode blurMode = BlurMode.Full;
 
     private RenderTextureDescriptor tempDesc;
     private RTHandle tempTarget1;
     private RTHandle tempTarget2;
 
-    public BlurMode blurMode = BlurMode.Full;
     private int horizontalKernalIdx = -1;
     private int verticalKernalIdx = -1;
     private int fullKernalIdx = -1;
@@ -43,56 +43,34 @@ public class GaussianBlurPass : ScriptableRenderPass
     
     public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
     {
+        int curKernelIdx = -1;
+        switch (blurMode)
+        {
+            case BlurMode.Full:
+                curKernelIdx = fullKernalIdx;
+                break;
+            case BlurMode.Horizontal:
+            case BlurMode.HorizontalAndVertical:
+                curKernelIdx = horizontalKernalIdx;
+                break;
+            case BlurMode.Vertical:
+                curKernelIdx = verticalKernalIdx;
+                break;
+        }
+        
         CommandBuffer cmd = CommandBufferPool.Get("Gaussian Blur");
-
         var src = renderingData.cameraData.renderer.cameraColorTargetHandle;
 
-        if(blurMode==BlurMode.Full)
-        {
-            // Dispatch the compute shader
-            cmd.SetComputeTextureParam(computeShader, fullKernalIdx, "InputTexture", src);
-            cmd.SetComputeTextureParam(computeShader, fullKernalIdx, "Result", tempTarget1);
-            cmd.SetComputeFloatParam(computeShader, "BlurRadius", blurRadius);
-            cmd.DispatchCompute(computeShader, fullKernalIdx,
-                Mathf.CeilToInt(renderingData.cameraData.cameraTargetDescriptor.width / 8.0f),
-                Mathf.CeilToInt(renderingData.cameraData.cameraTargetDescriptor.height / 8.0f), 1);
+        // Dispatch the compute shader
+        cmd.SetComputeTextureParam(computeShader, curKernelIdx, "InputTexture", src);
+        cmd.SetComputeTextureParam(computeShader, curKernelIdx, "Result", tempTarget1);
+        cmd.SetComputeFloatParam(computeShader, "BlurRadius", blurRadius);
+        cmd.DispatchCompute(computeShader, curKernelIdx,
+            Mathf.CeilToInt(renderingData.cameraData.cameraTargetDescriptor.width / 8.0f),
+            Mathf.CeilToInt(renderingData.cameraData.cameraTargetDescriptor.height / 8.0f), 1);
 
-            cmd.Blit(tempTarget1, src);
-        }
-        else if(blurMode==BlurMode.Horizontal)
+        if (blurMode == BlurMode.HorizontalAndVertical)
         {
-            // Dispatch the compute shader
-            cmd.SetComputeTextureParam(computeShader, horizontalKernalIdx, "InputTexture", src);
-            cmd.SetComputeTextureParam(computeShader, horizontalKernalIdx, "Result", tempTarget1);
-            cmd.SetComputeFloatParam(computeShader, "BlurRadius", blurRadius);
-            cmd.DispatchCompute(computeShader, horizontalKernalIdx,
-                Mathf.CeilToInt(renderingData.cameraData.cameraTargetDescriptor.width / 8.0f),
-                Mathf.CeilToInt(renderingData.cameraData.cameraTargetDescriptor.height / 8.0f), 1);
-
-            cmd.Blit(tempTarget1, src);
-        }
-        else if(blurMode==BlurMode.Vertical)
-        {
-            // Dispatch the compute shader
-            cmd.SetComputeTextureParam(computeShader, verticalKernalIdx, "InputTexture", src);
-            cmd.SetComputeTextureParam(computeShader, verticalKernalIdx, "Result", tempTarget1);
-            cmd.SetComputeFloatParam(computeShader, "BlurRadius", blurRadius);
-            cmd.DispatchCompute(computeShader, verticalKernalIdx,
-                Mathf.CeilToInt(renderingData.cameraData.cameraTargetDescriptor.width / 8.0f),
-                Mathf.CeilToInt(renderingData.cameraData.cameraTargetDescriptor.height / 8.0f), 1);
-
-            cmd.Blit(tempTarget1, src);
-        }
-        else if (blurMode == BlurMode.HorizontalAndVertical)
-        {
-            // Dispatch the compute shader
-            cmd.SetComputeTextureParam(computeShader, horizontalKernalIdx, "InputTexture", src);
-            cmd.SetComputeTextureParam(computeShader, horizontalKernalIdx, "Result", tempTarget1);
-            cmd.SetComputeFloatParam(computeShader, "BlurRadius", blurRadius);
-            cmd.DispatchCompute(computeShader, horizontalKernalIdx,
-                Mathf.CeilToInt(renderingData.cameraData.cameraTargetDescriptor.width / 8.0f),
-                Mathf.CeilToInt(renderingData.cameraData.cameraTargetDescriptor.height / 8.0f), 1);
-            
             // Dispatch the compute shader
             cmd.SetComputeTextureParam(computeShader, verticalKernalIdx, "InputTexture", tempTarget1);
             cmd.SetComputeTextureParam(computeShader, verticalKernalIdx, "Result", tempTarget2);
@@ -102,6 +80,10 @@ public class GaussianBlurPass : ScriptableRenderPass
                 Mathf.CeilToInt(renderingData.cameraData.cameraTargetDescriptor.height / 8.0f), 1);
             
             cmd.Blit(tempTarget2, src);
+        }
+        else
+        {
+            cmd.Blit(tempTarget1, src);
         }
         
         context.ExecuteCommandBuffer(cmd);
