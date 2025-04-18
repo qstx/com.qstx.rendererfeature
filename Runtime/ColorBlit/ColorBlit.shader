@@ -1,4 +1,4 @@
-Shader "ColorBlit"
+Shader "QSTXRendererFeature/ColorBlit"
 {
     SubShader
     {

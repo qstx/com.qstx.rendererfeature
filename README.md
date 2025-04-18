@@ -26,3 +26,15 @@
     </tr>
   </table>
 </div>
+
+<!-- <video controls src="Documentation/images/高斯模糊.mp4" title="高斯模糊"></video> -->
+
+![高斯模糊](Documentation/images/高斯模糊.gif)
+
+# 2. [屏幕空间体积光](Runtime/VolumetricLight)
+
+[参考教程](https://learn.u3d.cn/tutorial/CustomRendererFeatureTutorials03)
+
+<!-- <video controls src="Documentation/images/屏幕空间体积光.mp4" title="屏幕空间体积光"></video> -->
+
+![屏幕空间体积光](Documentation/images/屏幕空间体积光.gif)
