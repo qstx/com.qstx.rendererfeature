@@ -7,8 +7,9 @@ using UnityEngine.Rendering.Universal;
 public class GaussianBlurRendererFeature : ScriptableRendererFeature
 {
     [System.Serializable]
-    public enum BlurMode
+    public enum BlurMode:int
     {
+        Null = 0,
         Horizontal,
         Vertical,
         HorizontalAndVertical,
@@ -44,7 +45,8 @@ public class GaussianBlurRendererFeature : ScriptableRendererFeature
         blurPass.blurRadius = settings.blurRadius;
         blurPass.blurMode = settings.blurMode;
 
-        renderer.EnqueuePass(blurPass);
+        if (settings.blurMode != BlurMode.Null)
+            renderer.EnqueuePass(blurPass);
     }
 
     protected override void Dispose(bool disposing)

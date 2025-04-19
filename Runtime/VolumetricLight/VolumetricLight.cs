@@ -88,7 +88,6 @@ public class VolumetricLightPass : ScriptableRenderPass
             
             cmd.Blit(occluder,renderingData.cameraData.renderer.cameraColorTargetHandle,radialBlurMaterial);
             //Blit(cmd,occluder,renderingData.cameraData.renderer.cameraColorTargetHandle,radialBlurMaterial);
-            Blitter.BlitTexture(cmd,occluder,renderingData.cameraData.renderer.c);
             //Blitter.BlitTexture2D(cmd,occluder,new Vector4(1.0f,1.0f,0.0f,0.0f),0,true);
         }
         
