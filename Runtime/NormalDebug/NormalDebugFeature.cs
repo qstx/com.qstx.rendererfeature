@@ -1,34 +1,38 @@
+using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
 public class NormalDebugFeature:ScriptableRendererFeature
 {
+    [Serializable]
+    public class NormalDebugSettings
+    {
+        [Range(0.0f, 2.0f)]
+        public float normalScale = 1.0f;
+    }
     public class NormalDebugPass : ScriptableRenderPass
     {
-        private ShaderTagId _passTag = new ShaderTagId("NormalDebug");
+        private readonly float _normalScale;
+        private readonly ShaderTagId _passTag = new ShaderTagId("NormalDebug");
         private FilteringSettings _filteringSettings = new FilteringSettings();
 
-        public NormalDebugPass()
+        public NormalDebugPass(NormalDebugSettings settings)
         {
+            _normalScale = settings.normalScale;
             _filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
-            renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
-        }
-
-        public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
-        {
-            ConfigureTarget(renderingData.cameraData.renderer.cameraColorTargetHandle);
+            renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
-            Debug.Log("NormalDebug");
-            CommandBuffer cmd = CommandBufferPool.Get("Draw Normals");
-            context.ExecuteCommandBuffer(cmd);
-            cmd.Clear();
+            CommandBuffer cmd = CommandBufferPool.Get();
 
             using (new ProfilingScope(cmd, new ProfilingSampler("NormalDebug")))
             {
+                context.ExecuteCommandBuffer(cmd);
+                cmd.Clear();
+                cmd.SetGlobalFloat("_NormalScale", _normalScale);
                 var drawingSettings = CreateDrawingSettings(_passTag, ref renderingData, SortingCriteria.CommonOpaque);
                 context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref _filteringSettings);
             }
@@ -39,9 +43,10 @@ public class NormalDebugFeature:ScriptableRendererFeature
     }
 
     private NormalDebugPass _pass;
+    public NormalDebugSettings settings;
     public override void Create()
     {
-        _pass = new NormalDebugPass();
+        _pass = new NormalDebugPass(settings);
     }
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)

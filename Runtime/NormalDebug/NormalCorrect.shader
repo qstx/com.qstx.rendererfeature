@@ -3,6 +3,7 @@ Shader "Unlit/NormalCorrect"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
+        _NormalScale("NormalScale",Range(0.0,2.0)) = 1.0
     }
     SubShader
     {
@@ -115,13 +116,24 @@ Shader "Unlit/NormalCorrect"
         Pass
         {
             Name "NormalDebug"
-            ZWrite Off
+            Tags
+            {
+                "LightMode" = "NormalDebug"
+            }
+            ZWrite On
             ZTest LEqual
-            ColorMask 0
-            Cull Back
+            Cull Off
+            Blend Off
             
             HLSLPROGRAM
+            #pragma target 2.0//据说需要大于等于4
+            #pragma require geometry
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            CBUFFER_START(UnityPerMaterial)
+            float _NormalScale;
+            CBUFFER_END
+            
             struct Attributes
             {
                 float3 normalOS : NORMAL;
@@ -158,15 +170,15 @@ Shader "Unlit/NormalCorrect"
             void geom(point Varyings IN[1], inout LineStream<GeomOutputs> stream)
             {
                 float3 p0 = IN[0].positionWS;
-                float3 p1 = p0 + IN[0].normalWS * 0.2;
+                float3 p1 = p0 + IN[0].normalWS * _NormalScale;
 
                 GeomOutputs o = (GeomOutputs)0;
-                o.positionHS = TransformObjectToHClip(p0);
-                o.normalWS = IN[0].positionWS;
+                o.positionHS = TransformWorldToHClip(p0);
+                o.normalWS = IN[0].normalWS;
                 stream.Append(o);
 
-                o.positionHS = TransformObjectToHClip(p1);
-                o.normalWS = IN[0].positionWS;
+                o.positionHS = TransformWorldToHClip(p1);
+                o.normalWS = IN[0].normalWS;
                 stream.Append(o);
             }
 
