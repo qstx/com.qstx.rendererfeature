@@ -3,10 +3,16 @@ Shader "Unlit/NormalCorrect"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _NormalScale("NormalScale",Range(0.0,2.0)) = 1.0
+        //[KeywordEnum(WS1,OS)]_NormalSpace("Normal Space",Float) = 1
+        //https://docs.unity3d.com/2022.3/Documentation/ScriptReference/Shader.SetGlobalFloat.html
+        //https://blog.csdn.net/weixin_37417198/article/details/121260036
+        //_NormalScale("NormalScale",Range(0.0,2.0)) = 1.0
     }
     SubShader
     {
+        HLSLINCLUDE
+        #pragma multi_compile _NORMALSPACE_WS _NORMALSPACE_OS
+        ENDHLSL
         Tags
         {
             "RenderType"="Opaque"
@@ -43,7 +49,7 @@ Shader "Unlit/NormalCorrect"
 
             struct Varyings
             {
-                float3 normalWS : NORMAL;
+                float3 targetDir : NORMAL;
                 float2 uv : TEXCOORD0;
                 float4 positionHS : SV_POSITION;
             };
@@ -55,7 +61,11 @@ Shader "Unlit/NormalCorrect"
             {
                 Varyings output = (Varyings)0;
                 output.positionHS = TransformObjectToHClip(input.positionOS.xyz);
-                output.normalWS = TransformObjectToWorldNormal(input.normalOS.xyz);
+                #ifdef _NORMALSPACE_OS
+                output.targetDir = TransformObjectToWorldDir(input.normalOS.xyz,true);
+                #else
+                output.targetDir = TransformObjectToWorldNormal(input.normalOS.xyz,true);
+                #endif
                 //output.normalWS = TransformObjectToWorldDir(input.normalOS.xyz);
                 output.uv = input.uv;
                 return output;
@@ -63,7 +73,7 @@ Shader "Unlit/NormalCorrect"
 
             float4 frag (Varyings input) : SV_Target
             {
-                float3 color = input.normalWS;
+                float3 color = input.targetDir;
                 return float4(color, 1.0f);
             }
             ENDHLSL
@@ -119,10 +129,11 @@ Shader "Unlit/NormalCorrect"
             Tags
             {
                 "LightMode" = "NormalDebug"
+                "RenderPipeline" = "UniversalRenderPipeline"
             }
             ZWrite On
             ZTest LEqual
-            Cull Off
+            Cull Back
             Blend Off
             
             HLSLPROGRAM
@@ -130,9 +141,9 @@ Shader "Unlit/NormalCorrect"
             #pragma require geometry
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
-            CBUFFER_START(UnityPerMaterial)
+            //CBUFFER_START(UnityPerMaterial)
             float _NormalScale;
-            CBUFFER_END
+            //CBUFFER_END
             
             struct Attributes
             {
@@ -143,7 +154,7 @@ Shader "Unlit/NormalCorrect"
 
             struct Varyings
             {
-                float3 normalWS : NORMAL1;
+                float3 targetDir : NORMAL1;
                 float3 positionWS : POSITION2;
             };
 
@@ -161,25 +172,34 @@ Shader "Unlit/NormalCorrect"
             {
                 Varyings output = (Varyings)0;
                 output.positionWS = TransformObjectToWorld(input.positionOS.xyz);
-                output.normalWS = TransformObjectToWorldNormal(input.normalOS.xyz);
+                #ifdef _NORMALSPACE_OS
+                output.targetDir = TransformObjectToWorldDir(input.normalOS.xyz, true);
+                #else
+                output.targetDir = TransformObjectToWorldNormal(input.normalOS.xyz,true);
+                #endif
                 //output.normalWS = TransformObjectToWorldDir(input.normalOS.xyz);
                 return output;
             }
 
-            [maxvertexcount(2)]
-            void geom(point Varyings IN[1], inout LineStream<GeomOutputs> stream)
+            [maxvertexcount(6)]
+            void geom(triangle Varyings IN[3], inout LineStream<GeomOutputs> stream)
             {
-                float3 p0 = IN[0].positionWS;
-                float3 p1 = p0 + IN[0].normalWS * _NormalScale;
+                for (int i=0;i<3;++i)
+                {
+                    float3 p0 = IN[i].positionWS;
+                    float3 p1 = p0 + IN[i].targetDir * _NormalScale;
 
-                GeomOutputs o = (GeomOutputs)0;
-                o.positionHS = TransformWorldToHClip(p0);
-                o.normalWS = IN[0].normalWS;
-                stream.Append(o);
+                    GeomOutputs o = (GeomOutputs)0;
+                    o.positionHS = TransformWorldToHClip(p0);
+                    o.normalWS = IN[i].targetDir;
+                    stream.Append(o);
 
-                o.positionHS = TransformWorldToHClip(p1);
-                o.normalWS = IN[0].normalWS;
-                stream.Append(o);
+                    o.positionHS = TransformWorldToHClip(p1);
+                    o.normalWS = IN[i].targetDir;
+                    stream.Append(o);
+
+                    stream.RestartStrip();
+                }
             }
 
             float4 frag (GeomOutputs input) : SV_Target

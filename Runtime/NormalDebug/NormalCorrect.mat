@@ -24,8 +24,13 @@ Material:
   m_Shader: {fileID: 4800000, guid: 2ce2e1d5a67be2045bc5dc7e1beb1fee, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
+  m_ValidKeywords:
+  - _NORMALSPACE_OS
+  m_InvalidKeywords:
+  - _NORMAL_NONE
+  - _NORMAL_WS
+  - _OVERLAY_NONE
+  - _SPACE_NORMALOS
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -112,13 +117,17 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _Metallic: 0
+    - _Normal: 0
     - _NormalScale: 0.5
+    - _NormalSpace: 1
     - _OcclusionStrength: 1
+    - _Overlay: 0
     - _Parallax: 0.005
     - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
+    - _Space: 1
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
