@@ -35,6 +35,55 @@
 
 [参考教程](https://learn.u3d.cn/tutorial/CustomRendererFeatureTutorials03)
 
+核心部分代码：
+
+```cg
+fixed4 frag(v2f i) : SV_Target
+{
+    fixed4 col = fixed4(0.0f,0.0f,0.0f,1.0f);
+
+    float2 ray = i.uv-_Center.xy;
+    
+    //将光源方向的颜色进行一定程度的叠加
+    for(int i=0;i<NUM_SAMPLES;++i)
+    {
+        float scale=1.0f-_BlurWidth*(float(i)/float(NUM_SAMPLES-1));
+        col.rgb+=tex2D(_MainTex,(ray*scale)+_Center.xy).rgb/float(NUM_SAMPLES);
+    }
+    return col*_Intensity;
+}
+```
+
 <!-- <video controls src="Documentation/images/屏幕空间体积光.mp4" title="屏幕空间体积光"></video> -->
 
 ![屏幕空间体积光](Documentation/images/屏幕空间体积光.gif)
+
+# 3. [物体法线调试](Runtime/NormalDebug)
+
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="Documentation/images/矫正后法线.gif" alt="矫正后法线" style="vertical-align: middle; width: auto; max-width: 100%;" />
+        矫正后法线
+      </td>
+      <td align="center">
+        <img src="Documentation/images/矫正前法线.gif" alt="矫正前法线" style="vertical-align: middle; width: auto; max-width: 100%;" />
+        矫正前法线
+      </td>
+    </tr>
+  </table>
+</div>
+
+![等比缩放情况下的未校正法线](Documentation/images/等比缩放情况下的未校正法线.png)
+
+![非等比缩放情况下的未校正法线](Documentation/images/非等比缩放情况下的未校正法线.png)
+
+法线矫正矩阵为：$(M^{-1})^T$
+
+Unity实现：
+
+```hlsl
+float3 normalWS = mul(normalOS, (float3x3)GetWorldToObjectMatrix());
+```
