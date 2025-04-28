@@ -1,9 +1,8 @@
-Shader "Unlit/NormalCorrect"
+Shader "QSTXRendererFeature/NormalAlbedoShow"
 {
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        //[KeywordEnum(WS1,OS)]_NormalSpace("Normal Space",Float) = 1
         //https://docs.unity3d.com/2022.3/Documentation/ScriptReference/Shader.SetGlobalFloat.html
         //https://blog.csdn.net/weixin_37417198/article/details/121260036
         //_NormalScale("NormalScale",Range(0.0,2.0)) = 1.0
@@ -11,7 +10,8 @@ Shader "Unlit/NormalCorrect"
     SubShader
     {
         HLSLINCLUDE
-        #pragma multi_compile _NORMALSPACE_WS _NORMALSPACE_OS
+        #pragma multi_compile _ _NORMAL_UNCORRECTED
+        #pragma multi_compile _ _COLOR_REMAP
         ENDHLSL
         Tags
         {
@@ -49,7 +49,7 @@ Shader "Unlit/NormalCorrect"
 
             struct Varyings
             {
-                float3 targetDir : NORMAL;
+                float3 normalDir : NORMAL;
                 float2 uv : TEXCOORD0;
                 float4 positionHS : SV_POSITION;
             };
@@ -61,19 +61,22 @@ Shader "Unlit/NormalCorrect"
             {
                 Varyings output = (Varyings)0;
                 output.positionHS = TransformObjectToHClip(input.positionOS.xyz);
-                #ifdef _NORMALSPACE_OS
-                output.targetDir = TransformObjectToWorldDir(input.normalOS.xyz,true);
+                #ifdef _NORMAL_UNCORRECTED
+                output.normalDir = TransformObjectToWorldDir(input.normalOS.xyz,true);
                 #else
-                output.targetDir = TransformObjectToWorldNormal(input.normalOS.xyz,true);
+                output.normalDir = TransformObjectToWorldNormal(input.normalOS.xyz,true);
                 #endif
-                //output.normalWS = TransformObjectToWorldDir(input.normalOS.xyz);
                 output.uv = input.uv;
                 return output;
             }
 
             float4 frag (Varyings input) : SV_Target
             {
-                float3 color = input.targetDir;
+                
+                #ifdef _COLOR_REMAP
+                input.normalDir=(input.normalDir+float3(1.0f,1.0f,1.0f)) * 0.5f;
+                #endif
+                float3 color = input.normalDir;
                 return float4(color, 1.0f);
             }
             ENDHLSL
@@ -137,76 +140,18 @@ Shader "Unlit/NormalCorrect"
             Blend Off
             
             HLSLPROGRAM
-            #pragma target 2.0//据说需要大于等于4
+            #pragma target 2.0//据说需要大于等于4，不然无法支持几何着色器
             #pragma require geometry
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-
-            //CBUFFER_START(UnityPerMaterial)
-            float _NormalScale;
-            //CBUFFER_END
-            
-            struct Attributes
-            {
-                float3 normalOS : NORMAL;
-                float3 positionOS : POSITION;
-                float2 uv : TEXCOORD0;
-            };
-
-            struct Varyings
-            {
-                float3 targetDir : NORMAL1;
-                float3 positionWS : POSITION2;
-            };
-
-            struct GeomOutputs
-            {
-                float3 normalWS : NORMAL3;
-                float4 positionHS : SV_POSITION;
-            };
-            #pragma vertex vert
-            #pragma geometry geom
-            #pragma fragment frag
             #pragma enable_d3d11_debug_symbols
+            #pragma multi_compile _ _NORMAL_UNCORRECTED
+            #pragma multi_compile _ _COLOR_REMAP
+            
+            #include "Packages/com.qstx.rendererfeature/Runtime/NormalDebug/NormalDebugPass.hlsl"
+ 
+            #pragma vertex NormalDebugVertex
+            #pragma geometry NormalDebugGeometry
+            #pragma fragment NormalDebugFragment
 
-            Varyings vert (Attributes input)
-            {
-                Varyings output = (Varyings)0;
-                output.positionWS = TransformObjectToWorld(input.positionOS.xyz);
-                #ifdef _NORMALSPACE_OS
-                output.targetDir = TransformObjectToWorldDir(input.normalOS.xyz, true);
-                #else
-                output.targetDir = TransformObjectToWorldNormal(input.normalOS.xyz,true);
-                #endif
-                //output.normalWS = TransformObjectToWorldDir(input.normalOS.xyz);
-                return output;
-            }
-
-            [maxvertexcount(6)]
-            void geom(triangle Varyings IN[3], inout LineStream<GeomOutputs> stream)
-            {
-                for (int i=0;i<3;++i)
-                {
-                    float3 p0 = IN[i].positionWS;
-                    float3 p1 = p0 + IN[i].targetDir * _NormalScale;
-
-                    GeomOutputs o = (GeomOutputs)0;
-                    o.positionHS = TransformWorldToHClip(p0);
-                    o.normalWS = IN[i].targetDir;
-                    stream.Append(o);
-
-                    o.positionHS = TransformWorldToHClip(p1);
-                    o.normalWS = IN[i].targetDir;
-                    stream.Append(o);
-
-                    stream.RestartStrip();
-                }
-            }
-
-            float4 frag (GeomOutputs input) : SV_Target
-            {
-                float3 color = input.normalWS;
-                return float4(color, 1.0f);
-            }
             ENDHLSL
         }
     }
