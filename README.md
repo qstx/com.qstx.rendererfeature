@@ -76,11 +76,13 @@ fixed4 frag(v2f i) : SV_Target
   </table>
 </div>
 
+## *关于[法线矫正](http://www.lighthouse3d.com/tutorials/glsl-12-tutorial/the-normal-matrix/)*
+
 ![等比缩放情况下的未校正法线](Documentation/images/等比缩放情况下的未校正法线.png)
 
 ![非等比缩放情况下的未校正法线](Documentation/images/非等比缩放情况下的未校正法线.png)
 
-法线矫正矩阵为：$(M^{-1})^T$
+法线矫正矩阵为：Transpose(Inverse(M))
 
 Unity实现：
 

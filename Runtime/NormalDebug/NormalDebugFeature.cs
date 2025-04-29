@@ -22,17 +22,14 @@ public class NormalDebugFeature:ScriptableRendererFeature
     }
     public class NormalDebugPass : ScriptableRenderPass
     {
-        private readonly float _normalScale;
-        private readonly NormalSpace _mode;
-        private readonly bool _colorRemap;
+        public float normalScale;
+        public NormalSpace mode;
+        public bool colorRemap;
         private readonly ShaderTagId _passTag = new ShaderTagId("NormalDebug");
         private FilteringSettings _filteringSettings = new FilteringSettings();
 
-        public NormalDebugPass(NormalDebugSettings settings)
+        public NormalDebugPass()
         {
-            _normalScale = settings.normalScale;
-            _mode = settings.mode;
-            _colorRemap = settings.colorRemap;
             _filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
             renderPassEvent = RenderPassEvent.BeforeRenderingPostProcessing;
         }
@@ -45,13 +42,13 @@ public class NormalDebugFeature:ScriptableRendererFeature
             {
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
-                cmd.SetGlobalFloat("_NormalScale", _normalScale);
+                cmd.SetGlobalFloat("_NormalScale", normalScale);
                 var drawingSettings = CreateDrawingSettings(_passTag, ref renderingData, SortingCriteria.CommonOpaque);
-                if(_mode==NormalSpace.Uncorrected)
+                if(mode==NormalSpace.Uncorrected)
                     cmd.EnableShaderKeyword("_NORMAL_UNCORRECTED");
                 else
                     cmd.DisableShaderKeyword("_NORMAL_UNCORRECTED");
-                if(_colorRemap)
+                if(colorRemap)
                     cmd.EnableShaderKeyword("_COLOR_REMAP");
                 else
                     cmd.DisableShaderKeyword("_COLOR_REMAP");
@@ -67,12 +64,17 @@ public class NormalDebugFeature:ScriptableRendererFeature
     public NormalDebugSettings settings;
     public override void Create()
     {
-        _pass = new NormalDebugPass(settings);
+        _pass = new NormalDebugPass();
     }
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
         if(settings.mode!=NormalSpace.Off)
+        {
+            _pass.normalScale = settings.normalScale;
+            _pass.mode = settings.mode;
+            _pass.colorRemap = settings.colorRemap;
             renderer.EnqueuePass(_pass);
+        }
     }
 }
