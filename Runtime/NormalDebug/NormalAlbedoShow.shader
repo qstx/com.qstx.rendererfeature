@@ -9,10 +9,6 @@ Shader "QSTXRendererFeature/NormalAlbedoShow"
     }
     SubShader
     {
-        HLSLINCLUDE
-        #pragma multi_compile _ _NORMAL_UNCORRECTED
-        #pragma multi_compile _ _COLOR_REMAP
-        ENDHLSL
         Tags
         {
             "RenderType"="Opaque"
@@ -36,6 +32,8 @@ Shader "QSTXRendererFeature/NormalAlbedoShow"
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            #pragma multi_compile _ _NORMAL_UNCORRECTED
+            #pragma multi_compile _ _COLOR_REMAP
             #pragma enable_d3d11_debug_symbols
 
 

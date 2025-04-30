@@ -14,6 +14,11 @@ public class VolumetricLightScatteringSettings
     [Range(0.0f, 1.0f)] public float intensity = 1.0f;
         
     [Range(0.0f, 1.0f)] public float blurWidth = 0.85f;
+    
+    [Header("Shaders")]
+    public Shader radialBlurShader;
+    
+    public Shader occuludersShader;
 }
 
 public class VolumetricLightPass : ScriptableRenderPass
@@ -34,8 +39,8 @@ public class VolumetricLightPass : ScriptableRenderPass
         intensity = settings.intensity;
         blurWidth = settings.blurWidth;
 
-        occuludersMaterial = new Material(Shader.Find("QSTXRendererFeature/Occluders"));
-        radialBlurMaterial = new Material(Shader.Find("QSTXRendererFeature/RadialBlur"));
+        occuludersMaterial = new Material(settings.occuludersShader);
+        radialBlurMaterial = new Material(settings.radialBlurShader);
         
         shaderTagIdList.Add( new ShaderTagId( "UniversalForward" )); 
         shaderTagIdList.Add( new ShaderTagId( "UniversalForwardOnly" )); 
